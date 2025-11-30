@@ -1,11 +1,1234 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reservas el pollon de Iquique</title>
-</head>
-<body>
-    <h1>el polloón DE IQUIQUE</h1>
-</body>
+<!doctype html>
+<html lang="es">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservas - El Pollón</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+
+        .step-active {
+            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
+        }
+
+        .step-completed {
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.5);
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .step-inactive {
+            background: rgba(0, 0, 0, 0.02);
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        .product-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .time-slot {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .time-slot:hover:not(.disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+        }
+
+        .time-slot.selected {
+            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+            color: white !important;
+            border-color: #DC2626 !important;
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.5) !important;
+        }
+
+        .time-slot.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .quantity-btn {
+            transition: background-color 0.2s;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #DC2626;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .floating-cart {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .floating-cart-btn {
+            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 18px 28px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(220, 38, 38, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .floating-cart-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(220, 38, 38, 0.6);
+        }
+
+        .cart-badge {
+            background: white;
+            color: #DC2626;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .floating-cart-panel {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 380px;
+            max-height: 600px;
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+        }
+
+        .floating-cart-panel.open {
+            display: flex;
+        }
+
+        .cart-panel-header {
+            padding: 24px;
+            border-bottom: 2px solid rgba(220, 38, 38, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-panel-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 400px;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(245, 245, 245, 0.6);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .cart-panel-footer {
+            padding: 24px;
+            border-top: 2px solid rgba(220, 38, 38, 0.2);
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        @media (max-width: 480px) {
+            .floating-cart-panel {
+                width: calc(100vw - 32px);
+                right: 16px;
+                bottom: 16px;
+            }
+            
+            .floating-cart {
+                right: 16px;
+                bottom: 16px;
+            }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body>
+  <div id="app" style="width: 100%; min-height: 100%; background: #FFFFFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><!-- Hero Section with Background Pattern -->
+   <div style="width: 100%; background: linear-gradient(180deg, rgba(220, 38, 38, 0.05) 0%, rgba(255, 255, 255, 0) 100%), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0, 0, 0, 0.01) 10px, rgba(0, 0, 0, 0.01) 20px); padding: 40px 24px 60px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -50%; left: -10%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(220, 38, 38, 0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(60px);"></div>
+    <div style="position: absolute; bottom: -50%; right: -10%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(220, 38, 38, 0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(60px);"></div>
+    <div style="max-width: 1200px; margin: 0 auto; position: relative; z-index: 1;"><!-- Header -->
+     <div style="text-align: center; margin-bottom: 40px; position: relative;"><button id="btn-home" style="position: absolute; left: 0; top: 0; background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 12px 24px; border: 2px solid rgba(220, 38, 38, 0.3); border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: none; align-items: center; gap: 8px;" onmouseover="this.style.background='#DC2626'; this.style.color='#FFFFFF'; this.style.borderColor='#DC2626';" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.color='#000000'; this.style.borderColor='rgba(220, 38, 38, 0.3)';"> ← Volver al Inicio </button> <!-- Logo Icon -->
+      <div style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); border-radius: 24px; margin-bottom: 24px; box-shadow: 0 20px 50px rgba(220, 38, 38, 0.4); border: 3px solid rgba(255, 255, 255, 0.1);"><span style="font-size: 56px;">🍗</span>
+      </div>
+      <h1 id="restaurant-title" style="font-size: 56px; font-weight: 900; background: linear-gradient(135deg, #000000 0%, #DC2626 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px; letter-spacing: -1px;">Pollería El Pollón</h1>
+      <p style="font-size: 20px; color: rgba(0, 0, 0, 0.6); font-weight: 500;">Sistema de Reservas en Línea - Experiencia Premium</p><!-- Info Buttons -->
+      <div id="info-buttons" style="display: flex; gap: 16px; justify-content: center; margin-top: 32px; flex-wrap: wrap;"><button id="btn-schedule" style="background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 14px 28px; border: 2px solid rgba(220, 38, 38, 0.3); border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);" onmouseover="this.style.background='#DC2626'; this.style.color='#FFFFFF'; this.style.borderColor='#DC2626'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.color='#000000'; this.style.borderColor='rgba(220, 38, 38, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.1)'"> 🕐 Horarios de Atención </button> <button id="btn-policies" style="background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 14px 28px; border: 2px solid rgba(220, 38, 38, 0.3); border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);" onmouseover="this.style.background='#DC2626'; this.style.color='#FFFFFF'; this.style.borderColor='#DC2626'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.color='#000000'; this.style.borderColor='rgba(220, 38, 38, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.1)'"> 📋 Políticas del Restaurante </button>
+      </div>
+     </div><!-- Step Indicators -->
+     <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 0; flex-wrap: wrap;">
+      <div class="step-indicator step-active" id="step-1" style="padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); border: 2px solid rgba(220, 38, 38, 0.5); transition: all 0.3s;">
+       1. Fecha
+      </div>
+      <div class="step-indicator step-inactive" id="step-2" style="padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); border: 2px solid rgba(0, 0, 0, 0.1); transition: all 0.3s;">
+       2. Hora
+      </div>
+      <div class="step-indicator step-inactive" id="step-3" style="padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); border: 2px solid rgba(0, 0, 0, 0.1); transition: all 0.3s;">
+       3. Productos
+      </div>
+      <div class="step-indicator step-inactive" id="step-4" style="padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); border: 2px solid rgba(0, 0, 0, 0.1); transition: all 0.3s;">
+       4. Datos
+      </div>
+     </div>
+    </div>
+   </div><!-- Main Content Section -->
+   <div style="max-width: 1200px; margin: -40px auto 0; padding: 0 24px 60px; position: relative; z-index: 2;"><!-- Main Content Card -->
+    <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 24px; padding: 48px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1); border: 2px solid rgba(0, 0, 0, 0.05);"><!-- Schedule Page -->
+     <div id="schedule-page" style="display: none;">
+      <div style="text-align: center; margin-bottom: 48px;">
+       <div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); border-radius: 20px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);"><span style="font-size: 48px;">🕐</span>
+       </div>
+       <h2 style="font-size: 40px; font-weight: 900; color: #000000; margin-bottom: 12px; letter-spacing: -1px;">Horarios de Atención</h2>
+       <p style="font-size: 18px; color: rgba(0, 0, 0, 0.6);">Pollería El Pollón - Siempre listos para atenderte</p>
+      </div>
+      <div style="display: grid; gap: 24px; max-width: 800px; margin: 0 auto;"><!-- Domingo a Jueves -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 20px; padding: 32px; border: 2px solid rgba(220, 38, 38, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); transition: all 0.3s;" onmouseover="this.style.borderColor='rgba(220, 38, 38, 0.5)'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 40px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.borderColor='rgba(220, 38, 38, 0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 32px rgba(0, 0, 0, 0.1)'">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4); flex-shrink: 0;">
+          📅
+         </div>
+         <h3 style="font-size: 28px; font-weight: 800; color: #000000; margin: 0;">Domingo a Jueves</h3>
+        </div>
+        <div style="background: rgba(0, 0, 0, 0.03); padding: 24px; border-radius: 16px; border-left: 4px solid #DC2626;">
+         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+          <div>
+           <div style="font-size: 12px; color: rgba(0, 0, 0, 0.5); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px;">
+            APERTURA
+           </div>
+           <div style="font-size: 32px; font-weight: 900; color: #DC2626;">
+            12:30 hrs
+           </div>
+          </div>
+          <div style="font-size: 40px; color: rgba(220, 38, 38, 0.3);">
+           →
+          </div>
+          <div>
+           <div style="font-size: 12px; color: rgba(0, 0, 0, 0.5); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px;">
+            CIERRE
+           </div>
+           <div style="font-size: 32px; font-weight: 900; color: #DC2626;">
+            00:00 hrs
+           </div>
+          </div>
+         </div>
+        </div>
+       </div><!-- Viernes y Sábado -->
+       <div style="background: rgba(220, 38, 38, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 32px; border: 2px solid rgba(220, 38, 38, 0.4); box-shadow: 0 8px 32px rgba(220, 38, 38, 0.15); transition: all 0.3s;" onmouseover="this.style.borderColor='rgba(220, 38, 38, 0.7)'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 40px rgba(220, 38, 38, 0.25)'" onmouseout="this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 32px rgba(220, 38, 38, 0.15)'">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4); flex-shrink: 0;">
+          🎉
+         </div>
+         <h3 style="font-size: 28px; font-weight: 800; color: #000000; margin: 0;">Viernes y Sábado</h3>
+        </div>
+        <div style="background: rgba(0, 0, 0, 0.03); padding: 24px; border-radius: 16px; border-left: 4px solid #DC2626;">
+         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+          <div>
+           <div style="font-size: 12px; color: rgba(0, 0, 0, 0.5); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px;">
+            APERTURA
+           </div>
+           <div style="font-size: 32px; font-weight: 900; color: #DC2626;">
+            12:30 hrs
+           </div>
+          </div>
+          <div style="font-size: 40px; color: rgba(220, 38, 38, 0.3);">
+           →
+          </div>
+          <div>
+           <div style="font-size: 12px; color: rgba(0, 0, 0, 0.5); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px;">
+            CIERRE
+           </div>
+           <div style="font-size: 32px; font-weight: 900; color: #DC2626;">
+            01:00 hrs
+           </div>
+          </div>
+         </div>
+        </div>
+       </div><!-- Nota Importante -->
+       <div style="background: rgba(220, 38, 38, 0.08); backdrop-filter: blur(10px); border-radius: 16px; padding: 24px; border-left: 4px solid #DC2626; border: 1px solid rgba(220, 38, 38, 0.2);">
+        <div style="display: flex; gap: 16px; align-items: start;">
+         <div style="font-size: 28px; flex-shrink: 0;">
+          ℹ️
+         </div>
+         <div>
+          <div style="font-weight: 800; color: #000000; font-size: 18px; margin-bottom: 8px;">
+           Nota Importante
+          </div>
+          <div style="color: rgba(0, 0, 0, 0.7); font-size: 15px; line-height: 1.7;">
+           Nuestra cocina toma la última comanda hasta <strong style="color: #DC2626;">1 hora antes del cierre</strong> del restaurante.
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div style="text-align: center; margin-top: 48px;"><button id="btn-back-from-schedule" style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 18px 40px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> ← Volver al Inicio </button>
+      </div>
+     </div><!-- Policies Page -->
+     <div id="policies-page" style="display: none;">
+      <div style="text-align: center; margin-bottom: 48px;">
+       <div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); border-radius: 20px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);"><span style="font-size: 48px;">📋</span>
+       </div>
+       <h2 style="font-size: 40px; font-weight: 900; color: #000000; margin-bottom: 12px; letter-spacing: -1px;">Políticas del Restaurante</h2>
+       <p style="font-size: 18px; color: rgba(0, 0, 0, 0.6);">Para brindarte el mejor servicio</p>
+      </div>
+      <div style="display: grid; gap: 20px; max-width: 800px; margin: 0 auto;"><!-- Política 1: Última Comanda -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; border-left: 4px solid #DC2626; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'">
+        <div style="display: flex; gap: 20px; align-items: start;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+          1
+         </div>
+         <div style="flex: 1;">
+          <h4 style="font-size: 20px; font-weight: 800; color: #000000; margin: 0 0 12px 0;">⏰ Horario de Comandas</h4>
+          <p style="color: rgba(0, 0, 0, 0.7); margin: 0; line-height: 1.7; font-size: 15px;">Nuestra cocina toma la <strong style="color: #DC2626;">última comanda hasta 1 hora antes del cierre</strong> del restaurante.</p>
+         </div>
+        </div>
+       </div><!-- Política 2: Tiempo de Espera -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; border-left: 4px solid #DC2626; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'">
+        <div style="display: flex; gap: 20px; align-items: start;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+          2
+         </div>
+         <div style="flex: 1;">
+          <h4 style="font-size: 20px; font-weight: 800; color: #000000; margin: 0 0 12px 0;">⏳ Tiempo de Espera de Reservas</h4>
+          <p style="color: rgba(0, 0, 0, 0.7); margin: 0; line-height: 1.7; font-size: 15px;">La espera máxima de las mesas reservadas es de <strong style="color: #DC2626;">30 minutos</strong>. Pasado ese tiempo, las mesas se liberan y pueden ser utilizadas por otros clientes.</p>
+         </div>
+        </div>
+       </div><!-- Política 3: Menús Especiales -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; border-left: 4px solid #DC2626; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'">
+        <div style="display: flex; gap: 20px; align-items: start;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+          3
+         </div>
+         <div style="flex: 1;">
+          <h4 style="font-size: 20px; font-weight: 800; color: #000000; margin: 0 0 12px 0;">🥗 Menús Especiales</h4>
+          <p style="color: rgba(0, 0, 0, 0.7); margin: 0; line-height: 1.7; font-size: 15px;">Si requiere un <strong style="color: #DC2626;">menú especial para celíacos o veganos</strong>, debe informar al menos con <strong style="color: #DC2626;">24 horas de anticipación</strong> a su reserva.</p>
+         </div>
+        </div>
+       </div><!-- Política 4: Grupos Grandes -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; border-left: 4px solid #DC2626; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'">
+        <div style="display: flex; gap: 20px; align-items: start;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+          4
+         </div>
+         <div style="flex: 1;">
+          <h4 style="font-size: 20px; font-weight: 800; color: #000000; margin: 0 0 12px 0;">👥 Reservas de Grupos</h4>
+          <p style="color: rgba(0, 0, 0, 0.7); margin: 0; line-height: 1.7; font-size: 15px;">Para reservas de grupos <strong style="color: #DC2626;">(más de 10 personas)</strong> se aconseja pedir una cotización previa para optimizar los tiempos de nuestro servicio.</p>
+         </div>
+        </div>
+       </div><!-- Política 5: Eventos Especiales -->
+       <div style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; border-left: 4px solid #DC2626; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.4)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'">
+        <div style="display: flex; gap: 20px; align-items: start;">
+         <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+          5
+         </div>
+         <div style="flex: 1;">
+          <h4 style="font-size: 20px; font-weight: 800; color: #000000; margin: 0 0 12px 0;">🎂 Eventos y Celebraciones</h4>
+          <p style="color: rgba(0, 0, 0, 0.7); margin: 0; line-height: 1.7; font-size: 15px;">Para <strong style="color: #DC2626;">eventos especiales, celebraciones, cumpleaños</strong> o cualquier manifestación especial, sugerimos comunicarse con la administración con anticipación para poder preparar su requerimiento.</p>
+         </div>
+        </div>
+       </div><!-- Contacto -->
+       <div style="background: rgba(220, 38, 38, 0.08); backdrop-filter: blur(10px); border-radius: 16px; padding: 32px; text-align: center; margin-top: 24px; border: 1px solid rgba(220, 38, 38, 0.2);">
+        <div style="font-size: 40px; margin-bottom: 16px;">
+         📞
+        </div>
+        <h4 style="font-size: 24px; font-weight: 900; color: #000000; margin: 0 0 24px 0;">Opciones de Reserva</h4>
+        <div style="display: grid; gap: 16px; text-align: left;">
+         <div style="background: rgba(255, 255, 255, 0.8); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 16px; border: 1px solid rgba(0, 0, 0, 0.1); transition: all 0.3s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.3)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.05)'">
+          <div style="font-size: 28px;">
+           🌐
+          </div>
+          <div>
+           <div style="font-weight: 800; color: #000000; font-size: 16px;">
+            Vía Web
+           </div>
+           <div style="color: rgba(0, 0, 0, 0.6); font-size: 14px;">
+            Sistema de Reservas en Línea
+           </div>
+          </div>
+         </div>
+         <div style="background: rgba(255, 255, 255, 0.8); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 16px; border: 1px solid rgba(0, 0, 0, 0.1); transition: all 0.3s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);" onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.borderColor='rgba(220, 38, 38, 0.3)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.05)'">
+          <div style="font-size: 28px;">
+           💬
+          </div>
+          <div>
+           <div style="font-weight: 800; color: #000000; font-size: 16px;">
+            WhatsApp
+           </div>
+           <div style="color: rgba(0, 0, 0, 0.6); font-size: 14px;" id="whatsapp-display">
+            +56 9 1234 5678
+           </div>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div style="text-align: center; margin-top: 48px;"><button id="btn-back-from-policies" style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 18px 40px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> ← Volver al Inicio </button>
+      </div>
+     </div><!-- Step 1: Date Selection -->
+     <div id="date-step" style="display: block;">
+      <h2 style="font-size: 36px; font-weight: 900; color: #000000; margin-bottom: 32px; letter-spacing: -0.5px;">Selecciona la Fecha de tu Reserva</h2><!-- Calendar Icon -->
+      <div style="text-align: center; margin-bottom: 32px;">
+       <div style="display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 120px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); border-radius: 24px; box-shadow: 0 20px 50px rgba(220, 38, 38, 0.4); border: 3px solid rgba(255, 255, 255, 0.1); margin-bottom: 24px;"><span style="font-size: 72px;">📅</span>
+       </div>
+      </div>
+      <div style="margin-bottom: 32px;"><label for="date-input" style="display: block; font-weight: 800; color: #000000; margin-bottom: 16px; font-size: 24px; text-align: center;">📆 Fecha de Reserva</label> <input type="date" id="date-input" style="width: 100%; padding: 28px 24px; border: 3px solid rgba(220, 38, 38, 0.3); border-radius: 16px; font-size: 24px; outline: none; transition: all 0.3s; background: rgba(255, 255, 255, 0.95); color: #000000; backdrop-filter: blur(10px); font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); cursor: pointer;" onfocus="this.style.borderColor='#DC2626'; this.style.boxShadow='0 0 0 6px rgba(220, 38, 38, 0.15)'; this.style.transform='scale(1.02)'" onblur="this.style.borderColor='rgba(220, 38, 38, 0.3)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.1)'; this.style.transform='scale(1)'">
+      </div><button id="btn-date-next" style="width: 100%; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 20px; border: none; border-radius: 12px; font-size: 20px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> Continuar a Hora → </button>
+     </div><!-- Step 2: Time Selection -->
+     <div id="time-step" style="display: none;">
+      <h2 style="font-size: 36px; font-weight: 900; color: #000000; margin-bottom: 16px; letter-spacing: -0.5px;">Selecciona la Hora</h2>
+      <h2 style="font-size: 28px; font-weight: 700; color: #DC2626; margin-bottom: 32px; letter-spacing: -0.5px;">⏰ Horarios disponibles para este día</h2>
+      <div id="time-slots" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-bottom: 32px;"><!-- Time slots will be generated here -->
+      </div>
+      <div style="display: flex; gap: 16px;"><button id="btn-time-back" style="flex: 1; background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0, 0, 0, 0.08)'; this.style.borderColor='rgba(0, 0, 0, 0.2)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'"> ← Atrás </button> <button id="btn-time-next" style="flex: 2; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 18px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> Continuar a Productos → </button>
+      </div>
+     </div><!-- Step 3: Product Selection -->
+     <div id="products-step" style="display: none;">
+      <h2 style="font-size: 36px; font-weight: 900; color: #000000; margin-bottom: 32px; letter-spacing: -0.5px;">Selecciona tus Productos</h2>
+      <div id="category-filters" style="display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; justify-content: center;"><!-- Category filters will be generated here -->
+      </div>
+      <div id="products-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px;"><!-- Products will be generated here -->
+      </div>
+      <div style="background: rgba(220, 38, 38, 0.08); backdrop-filter: blur(10px); padding: 24px; border-radius: 16px; margin-bottom: 32px; border: 2px solid rgba(220, 38, 38, 0.2);">
+       <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 24px; font-weight: 800; color: #000000;">Total:</span> <span id="total-price" style="font-size: 36px; font-weight: 900; color: #DC2626;">$0</span>
+       </div>
+      </div>
+      <div style="display: flex; gap: 16px;"><button id="btn-products-back" style="flex: 1; background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0, 0, 0, 0.08)'; this.style.borderColor='rgba(0, 0, 0, 0.2)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'"> ← Atrás </button> <button id="btn-products-next" style="flex: 2; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 18px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> Continuar a Datos → </button>
+      </div>
+     </div><!-- Step 4: Customer Data -->
+     <div id="data-step" style="display: none;">
+      <h2 style="font-size: 36px; font-weight: 900; color: #000000; margin-bottom: 32px; letter-spacing: -0.5px;">Completa tus Datos</h2><!-- Summary -->
+      <div style="background: rgba(220, 38, 38, 0.08); backdrop-filter: blur(10px); padding: 28px; border-radius: 16px; margin-bottom: 32px; border: 2px solid rgba(220, 38, 38, 0.2);">
+       <h3 style="font-size: 22px; font-weight: 900; color: #000000; margin-bottom: 20px;">Resumen de tu Reserva</h3>
+       <div style="display: grid; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.1);"><span style="color: rgba(0, 0, 0, 0.7); font-weight: 700;">Fecha:</span> <span id="summary-date" style="color: #000000; font-weight: 800;"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.1);"><span style="color: rgba(0, 0, 0, 0.7); font-weight: 700;">Hora:</span> <span id="summary-time" style="color: #000000; font-weight: 800;"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-top: 8px;"><span style="color: rgba(0, 0, 0, 0.7); font-weight: 700; font-size: 20px;">Total:</span> <span id="summary-total" style="color: #DC2626; font-weight: 900; font-size: 28px;"></span>
+        </div>
+       </div>
+      </div>
+      <form id="customer-form">
+       <div style="margin-bottom: 24px;"><label for="customer-name" style="display: block; font-weight: 700; color: rgba(0, 0, 0, 0.9); margin-bottom: 12px; font-size: 18px;">Nombre Completo *</label> <input type="text" id="customer-name" required style="width: 100%; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.3s; background: rgba(255, 255, 255, 0.8); color: #000000; backdrop-filter: blur(10px);" onfocus="this.style.borderColor='#DC2626'; this.style.boxShadow='0 0 0 4px rgba(220, 38, 38, 0.1)'" onblur="this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='none'" placeholder="Juan Pérez">
+       </div>
+       <div style="margin-bottom: 24px;"><label for="customer-phone" style="display: block; font-weight: 700; color: rgba(0, 0, 0, 0.9); margin-bottom: 12px; font-size: 18px;">Teléfono *</label> <input type="tel" id="customer-phone" required style="width: 100%; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.3s; background: rgba(255, 255, 255, 0.8); color: #000000; backdrop-filter: blur(10px);" onfocus="this.style.borderColor='#DC2626'; this.style.boxShadow='0 0 0 4px rgba(220, 38, 38, 0.1)'" onblur="this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='none'" placeholder="+56 9 1234 5678">
+       </div>
+       <div style="margin-bottom: 32px;"><label for="customer-rut" style="display: block; font-weight: 700; color: rgba(0, 0, 0, 0.9); margin-bottom: 12px; font-size: 18px;">RUT *</label> <input type="text" id="customer-rut" required style="width: 100%; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.3s; background: rgba(255, 255, 255, 0.8); color: #000000; backdrop-filter: blur(10px);" onfocus="this.style.borderColor='#DC2626'; this.style.boxShadow='0 0 0 4px rgba(220, 38, 38, 0.1)'" onblur="this.style.borderColor='rgba(0, 0, 0, 0.1)'; this.style.boxShadow='none'" placeholder="12.345.678-9">
+       </div>
+       <div style="display: flex; gap: 16px;"><button type="button" id="btn-data-back" style="flex: 1; background: rgba(0, 0, 0, 0.03); backdrop-filter: blur(10px); color: #000000; padding: 18px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0, 0, 0, 0.08)'; this.style.borderColor='rgba(0, 0, 0, 0.2)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.03)'; this.style.borderColor='rgba(0, 0, 0, 0.1)'"> ← Atrás </button> <button type="submit" id="btn-submit" style="flex: 2; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 18px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(220, 38, 38, 0.4)'"> <span id="submit-text">Enviar Reserva por WhatsApp</span> <span id="submit-loading" style="display: none;" class="loading-spinner"></span> </button>
+       </div>
+      </form>
+     </div><!-- Success Message -->
+     <div id="success-message" style="display: none; text-align: center;">
+      <div style="font-size: 72px; margin-bottom: 20px;">
+       ��
+      </div>
+      <h2 style="font-size: 32px; font-weight: 700; color: #16A34A; margin-bottom: 16px;">¡Reserva Enviada!</h2>
+      <p style="font-size: 18px; color: #6B7280; margin-bottom: 24px;">Tu reserva ha sido enviada por WhatsApp correctamente.</p><button id="btn-new-reservation" style="background: #DC2626; color: white; padding: 16px 32px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#B91C1C'" onmouseout="this.style.background='#DC2626'"> Nueva Reserva </button>
+     </div>
+    </div>
+   </div><!-- Floating Cart Button (only visible in products step) -->
+   <div id="floating-cart" class="floating-cart" style="display: none;"><button class="floating-cart-btn" id="floating-cart-btn"> 🛒 Ver Carrito <span class="cart-badge" id="cart-badge">0</span> </button>
+   </div><!-- Floating Cart Panel -->
+   <div id="floating-cart-panel" class="floating-cart-panel">
+    <div class="cart-panel-header">
+     <h3 style="font-size: 20px; font-weight: 700; color: #000000; margin: 0;">🛒 Tu Carrito</h3><button id="close-cart-panel" style="background: none; border: none; font-size: 24px; color: #000000; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
+    </div>
+    <div class="cart-panel-body" id="cart-panel-body"><!-- Cart items will be rendered here -->
+    </div>
+    <div class="cart-panel-footer">
+     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"><span style="font-size: 18px; font-weight: 700; color: #000000;">Total:</span> <span id="floating-total" style="font-size: 24px; font-weight: 800; color: #DC2626;">$0</span>
+     </div><button id="floating-continue-btn" style="width: 100%; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(220, 38, 38, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(220, 38, 38, 0.4)'"> Continuar a Datos → </button>
+    </div>
+   </div>
+  </div>
+  <script>
+        const products = [
+            // OFERTAS FAMILIARES
+            { id: 1, name: 'Oferton mas chaufa', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 24500, description: 'Pollo entero, papas fritas, arroz chaufa, ensalada y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop' },
+            { id: 2, name: 'Oferton mas fideo', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 24500, description: 'Pollo entero, papas fritas, fideos al pesto, ensalada y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1633964913295-ceb438267482?w=400&h=300&fit=crop' },
+            { id: 3, name: 'Oferton mas chaufa pura papa', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 24500, description: 'Pollo entero, papas fritas, extra papa frita, arroz chaufa y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&h=300&fit=crop' },
+            { id: 4, name: 'Oferton con fideo', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 23500, description: 'Pollo entero, papas fritas, fideos al pesto y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1632334342937-2fda8e3448a2?w=400&h=300&fit=crop' },
+            { id: 5, name: 'Oferton sin ensalada', category: '👨‍👩‍������‍👦 Ofertas Familiares', price: 23500, description: 'Pollo entero, papas fritas, arroz chaufa y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1594221708779-94832f4320d1?w=400&h=300&fit=crop' },
+            { id: 6, name: 'Oferton pura papa', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 23500, description: 'Pollo entero, papas fritas, 1/2 porcion de papa frita y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400&h=300&fit=crop' },
+            { id: 7, name: 'Oferton familiar', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 22500, description: 'Pollo entero, papas fritas, ensalada y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop' },
+            { id: 8, name: 'Mega Familiar', category: '👨‍👩‍👧‍👦 Ofertas Familiares', price: 22500, description: 'Pollo entero, papas fritas, ensalada y bebidas 1.5lt', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b1?w=400&h=300&fit=crop' },
+            
+            // OFERTAS PARA DOS
+            { id: 9, name: '1/2 combo chaufa', category: '👫 Ofertas para Dos', price: 15600, description: 'Medio pollo, papas fritas, arroz chaufa', image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&h=300&fit=crop' },
+            { id: 10, name: '1/2 combo', category: '���� Ofertas para Dos', price: 15100, description: 'Medio pollo, papas fritas, ensalada personal', image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop' },
+            { id: 11, name: '1/2 combo pura papa', category: '👫 Ofertas para Dos', price: 15100, description: 'Medio pollo, papas fritas mas cantidad', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&h=300&fit=crop' },
+            
+            // OFERTAS PERSONALES
+            { id: 12, name: '1/4 combo', category: '🧑 Ofertas Personales', price: 8100, description: '1/4 pollo, papas fritas personales, ensalada personal', image: 'https://images.unsplash.com/photo-1594221708779-94832f4320d1?w=400&h=300&fit=crop' },
+            { id: 13, name: '1/4 combo pura papa', category: '��� Ofertas Personales', price: 8100, description: '1/4 pollo, papas fritas personales mas cantidad', image: 'https://images.unsplash.com/photo-1632334342937-2fda8e3448a2?w=400&h=300&fit=crop' },
+            { id: 14, name: 'Chaufa brasa', category: '🧑 Ofertas Personales', price: 8200, description: '1/4 pollo, arroz chaufa', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=300&fit=crop' },
+            { id: 15, name: 'Fideo al pesto con 1/4 de pollo', category: '🧑 Ofertas Personales', price: 8100, description: '1/4 pollo, fideos al pesto', image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop' },
+            { id: 16, name: 'Chaufa brasa con papas fritas', category: '🧑 Ofertas Personales', price: 9200, description: '1/4 pollo, papas fritas personal, arroz chaufa', image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&h=300&fit=crop' },
+            
+            // PLATOS EXTRAS
+            { id: 17, name: 'Lomo saltado con chaufa', category: '🍽️ Platos Extras', price: 12200, description: 'Lomo saltado con arroz chaufa', image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400&h=300&fit=crop' },
+            { id: 18, name: 'Lomo saltado de carne con arroz blanco', category: '🍽️ Platos Extras', price: 11700, description: 'Lomo saltado de carne con arroz blanco', image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400&h=300&fit=crop' },
+            { id: 19, name: 'Lomo saltado de pollo con arroz blanco', category: '🍽️ Platos Extras', price: 11700, description: 'Lomo saltado de pollo con arroz blanco', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=300&fit=crop' },
+            { id: 20, name: 'Tallarin saltado', category: '🍽️ Platos Extras', price: 11700, description: 'Tallarin saltado con verduras', image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop' },
+            { id: 21, name: 'Bistec a lo pobre', category: '🍽️ Platos Extras', price: 10700, description: 'Bistec a lo pobre con huevo y papas', image: 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=400&h=300&fit=crop' },
+            { id: 22, name: 'Bistec con fideos al pesto', category: '🍽️ Platos Extras', price: 10700, description: 'Bistec con fideos al pesto', image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop' },
+            { id: 23, name: 'Chuleta de cerdo', category: '🍽️ Platos Extras', price: 10700, description: 'Chuleta de cerdo con guarnición', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=400&h=300&fit=crop' },
+            { id: 24, name: 'Pechuga a la plancha', category: '🍽️ Platos Extras', price: 10200, description: 'Pechuga de pollo a la plancha', image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400&h=300&fit=crop' },
+            { id: 25, name: 'Combo nuggets', category: '🍽️ Platos Extras', price: 6700, description: 'Nuggets de pollo con papas fritas', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=400&h=300&fit=crop' },
+            { id: 26, name: 'Salchipapas', category: '🍽️ Platos Extras', price: 6700, description: 'Salchipapas clásicas', image: 'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=400&h=300&fit=crop' },
+            
+            // AGREGADOS
+            { id: 27, name: '1 Pollo entero solo', category: '➕ Agregados', price: 15000, description: '1 pollo entero', image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop' },
+            { id: 28, name: '1/2 Pollo solo', category: '➕ Agregados', price: 9900, description: '1/2 pollo - parte truto y pechuga', image: 'https://images.unsplash.com/photo-1594221708779-94832f4320d1?w=400&h=300&fit=crop' },
+            { id: 29, name: '1/4 pollo solo', category: '➕ Agregados', price: 5800, description: '1/4 de pollo - truto o pechuga - según el stock', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b1?w=400&h=300&fit=crop' },
+            { id: 30, name: 'Porcion de papas fritas familiar', category: '➕ Agregados', price: 9000, description: 'Porción grande de papas crujientes', image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop' },
+            { id: 31, name: '1/2 porcion de papas fritas', category: '➕ Agregados', price: 6100, description: 'Media Porci��n de papas crujientes', image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop' },
+            { id: 32, name: 'Porcion de arroz chaufa', category: '➕ Agregados', price: 5300, description: '1 Porción de arroz chaufa', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=300&fit=crop' },
+            { id: 33, name: 'Porcion de fideos al pesto', category: '➕ Agregados', price: 5300, description: '1 Porción de fideos al pesto', image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop' },
+            { id: 34, name: 'Porcion de ensalada familiar', category: '���� Agregados', price: 5400, description: 'Ensalada surtida - familiar', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop' },
+            { id: 35, name: 'Porcion de ensalada personal', category: '➕ Agregados', price: 3700, description: 'Ensalada surtida - personal', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop' }
+        ];
+
+        const defaultConfig = {
+            restaurant_name: 'Pollería El Pollón',
+            whatsapp_number: '56912345678',
+            available_hours: '12:00, 12:30, 13:00, 13:30, 19:00, 19:30, 20:00, 20:30, 21:00',
+            background_color: '#FFFFFF',
+            primary_color: '#DC2626',
+            text_color: '#000000',
+            secondary_color: '#F5F5F5',
+            button_color: '#DC2626'
+        };
+
+        let currentStep = 1;
+        let selectedDate = '';
+        let selectedTime = '';
+        let cart = {};
+        let reservationData = [];
+        let selectedCategory = 'all';
+
+        const dataHandler = {
+            onDataChanged(data) {
+                reservationData = data;
+            }
+        };
+
+        async function init() {
+            if (window.dataSdk) {
+                const initResult = await window.dataSdk.init(dataHandler);
+                if (!initResult.isOk) {
+                    console.error('Error al inicializar SDK de datos');
+                }
+            }
+
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    onConfigChange: async (config) => {
+                        document.getElementById('restaurant-title').textContent = `🍗 ${config.restaurant_name || defaultConfig.restaurant_name}`;
+                        document.body.style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.secondary_color || defaultConfig.secondary_color} 100%)`;
+                        
+                        const stepActive = document.querySelectorAll('.step-active');
+                        stepActive.forEach(el => el.style.backgroundColor = config.primary_color || defaultConfig.primary_color);
+                        
+                        const buttons = document.querySelectorAll('button[id^="btn-"]');
+                        buttons.forEach(btn => {
+                            if (btn.id.includes('submit') || btn.id.includes('new')) {
+                                btn.style.backgroundColor = config.button_color || defaultConfig.button_color;
+                            } else if (!btn.id.includes('back')) {
+                                btn.style.backgroundColor = config.primary_color || defaultConfig.primary_color;
+                            }
+                        });
+                        
+                        renderTimeSlots(config);
+                    },
+                    mapToCapabilities: (config) => ({
+                        recolorables: [
+                            {
+                                get: () => config.background_color || defaultConfig.background_color,
+                                set: (value) => {
+                                    if (window.elementSdk && window.elementSdk.config) {
+                                        window.elementSdk.config.background_color = value;
+                                        window.elementSdk.setConfig({ background_color: value });
+                                    }
+                                }
+                            },
+                            {
+                                get: () => config.primary_color || defaultConfig.primary_color,
+                                set: (value) => {
+                                    if (window.elementSdk && window.elementSdk.config) {
+                                        window.elementSdk.config.primary_color = value;
+                                        window.elementSdk.setConfig({ primary_color: value });
+                                    }
+                                }
+                            },
+                            {
+                                get: () => config.text_color || defaultConfig.text_color,
+                                set: (value) => {
+                                    if (window.elementSdk && window.elementSdk.config) {
+                                        window.elementSdk.config.text_color = value;
+                                        window.elementSdk.setConfig({ text_color: value });
+                                    }
+                                }
+                            },
+                            {
+                                get: () => config.secondary_color || defaultConfig.secondary_color,
+                                set: (value) => {
+                                    if (window.elementSdk && window.elementSdk.config) {
+                                        window.elementSdk.config.secondary_color = value;
+                                        window.elementSdk.setConfig({ secondary_color: value });
+                                    }
+                                }
+                            },
+                            {
+                                get: () => config.button_color || defaultConfig.button_color,
+                                set: (value) => {
+                                    if (window.elementSdk && window.elementSdk.config) {
+                                        window.elementSdk.config.button_color = value;
+                                        window.elementSdk.setConfig({ button_color: value });
+                                    }
+                                }
+                            }
+                        ],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ['restaurant_name', config.restaurant_name || defaultConfig.restaurant_name],
+                        ['whatsapp_number', config.whatsapp_number || defaultConfig.whatsapp_number],
+                        ['available_hours', config.available_hours || defaultConfig.available_hours]
+                    ])
+                });
+            }
+
+            setupEventListeners();
+            renderCategoryFilters();
+            renderProducts();
+            setMinDate();
+        }
+
+        function setMinDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-input').setAttribute('min', today);
+        }
+
+        function renderTimeSlots(config) {
+            const timeSlotsContainer = document.getElementById('time-slots');
+            
+            // Determinar qué horarios mostrar según el día seleccionado
+            let hours = [];
+            if (selectedDate) {
+                const date = new Date(selectedDate + 'T00:00:00');
+                const dayOfWeek = date.getDay(); // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+                
+                // Viernes (5), Sábado (6), Domingo (0) - Horarios reducidos
+                if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
+                    hours = ['19:30', '20:00', '20:30', '21:00'];
+                } 
+                // Lunes a Jueves (1, 2, 3, 4) - Horarios completos
+                else if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+                    hours = ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30'];
+                }
+            }
+            
+            timeSlotsContainer.innerHTML = '';
+            hours.forEach(hour => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot';
+                slot.textContent = hour;
+                slot.dataset.time = hour;
+                slot.style.cssText = 'padding: 20px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 12px; text-align: center; font-weight: 700; color: #000000; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 18px;';
+                
+                slot.addEventListener('click', function() {
+                    if (!this.classList.contains('disabled')) {
+                        document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedTime = this.dataset.time;
+                    }
+                });
+                
+                timeSlotsContainer.appendChild(slot);
+            });
+        }
+
+        function renderCategoryFilters() {
+            const filtersContainer = document.getElementById('category-filters');
+            filtersContainer.innerHTML = '';
+            
+            const categories = ['all', ...new Set(products.map(p => p.category))];
+            const categoryLabels = {
+                'all': '🔥 Todo el Menú',
+                '👨‍👩‍👧‍👦 Ofertas Familiares': '👨‍👩‍👧‍👦 Familiares',
+                '👫 Ofertas para Dos': '👫 Para Dos',
+                '🧑 Ofertas Personales': '🧑 Personales',
+                '🍽️ Platos Extras': '🍽️ Extras',
+                '➕ Agregados': '➕ Agregados'
+            };
+            
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.textContent = categoryLabels[category] || category;
+                btn.dataset.category = category;
+                btn.className = 'category-filter';
+                const isSelected = category === selectedCategory;
+                btn.style.cssText = `padding: 12px 24px; border: 2px solid ${isSelected ? '#DC2626' : 'rgba(0, 0, 0, 0.1)'}; background: ${isSelected ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' : 'rgba(255, 255, 255, 0.8)'}; color: ${isSelected ? 'white' : '#000000'}; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 14px; backdrop-filter: blur(10px); box-shadow: ${isSelected ? '0 4px 16px rgba(220, 38, 38, 0.4)' : 'none'};`;
+                
+                btn.addEventListener('click', function() {
+                    selectedCategory = this.dataset.category;
+                    renderCategoryFilters();
+                    renderProducts();
+                });
+                
+                btn.addEventListener('mouseover', function() {
+                    if (category !== selectedCategory) {
+                        this.style.background = 'rgba(255, 255, 255, 0.08)';
+                        this.style.borderColor = 'rgba(220, 38, 38, 0.3)';
+                    }
+                });
+                
+                btn.addEventListener('mouseout', function() {
+                    if (category !== selectedCategory) {
+                        this.style.background = 'rgba(255, 255, 255, 0.03)';
+                        this.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                });
+                
+                filtersContainer.appendChild(btn);
+            });
+        }
+
+        function renderProducts() {
+            const productsContainer = document.getElementById('products-list');
+            productsContainer.innerHTML = '';
+            
+            // Filter products by selected category
+            const filteredProducts = selectedCategory === 'all' 
+                ? products 
+                : products.filter(p => p.category === selectedCategory);
+            
+            // Group products by category
+            const categories = {};
+            filteredProducts.forEach(product => {
+                if (!categories[product.category]) {
+                    categories[product.category] = [];
+                }
+                categories[product.category].push(product);
+            });
+            
+            // Render each category
+            Object.keys(categories).forEach(category => {
+                // Category header (only if showing all)
+                if (selectedCategory === 'all') {
+                    const categoryHeader = document.createElement('div');
+                    categoryHeader.style.cssText = 'grid-column: 1 / -1; margin-top: 32px; margin-bottom: 20px;';
+                    categoryHeader.innerHTML = `<h3 style="font-size: 28px; font-weight: 900; color: #000000; border-bottom: 3px solid #DC2626; padding-bottom: 12px; display: inline-block; background: linear-gradient(90deg, #DC2626 0%, transparent 100%); padding-right: 100%; background-clip: border-box;">${category}</h3>`;
+                    productsContainer.appendChild(categoryHeader);
+                }
+                
+                // Products in category
+                categories[category].forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.style.cssText = 'background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transition: all 0.3s;';
+                    
+                    card.innerHTML = `
+                        <div style="width: 100%; height: 200px; overflow: hidden; position: relative;">
+                            <img src="${product.image}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onload="this.parentElement.addEventListener('mouseenter', () => this.style.transform='scale(1.1)'); this.parentElement.addEventListener('mouseleave', () => this.style.transform='scale(1)')">
+                            <div style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #DC2626, #B91C1C); align-items: center; justify-content: center; font-size: 64px;">🍗</div>
+                            <div style="position: absolute; top: 12px; right: 12px; background: rgba(220, 38, 38, 0.95); backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 8px; font-size: 16px; font-weight: 900; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">$${product.price.toLocaleString()}</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <h3 style="font-size: 18px; font-weight: 800; color: #000000; margin-bottom: 8px; min-height: 48px; line-height: 1.3;">${product.name}</h3>
+                            <p style="font-size: 14px; color: rgba(0, 0, 0, 0.6); margin-bottom: 16px; min-height: 40px; line-height: 1.4;">${product.description}</p>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 12px; border-top: 1px solid rgba(0, 0, 0, 0.1);">
+                                <button class="quantity-btn btn-minus" data-id="${product.id}" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); color: #DC2626; border: 2px solid rgba(220, 38, 38, 0.3); font-size: 22px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='white'" onmouseout="this.style.background='rgba(220, 38, 38, 0.1)'; this.style.color='#DC2626'">−</button>
+                                <span id="qty-${product.id}" style="font-size: 24px; font-weight: 900; color: #000000; min-width: 40px; text-align: center;">0</span>
+                                <button class="quantity-btn btn-plus" data-id="${product.id}" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; border: none; font-size: 22px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">+</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('mouseenter', function() {
+                        this.style.borderColor = 'rgba(220, 38, 38, 0.4)';
+                        this.style.boxShadow = '0 8px 32px rgba(220, 38, 38, 0.2)';
+                    });
+                    
+                    card.addEventListener('mouseleave', function() {
+                        this.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                        this.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)';
+                    });
+                    
+                    productsContainer.appendChild(card);
+                });
+            });
+            
+            document.querySelectorAll('.btn-plus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.dataset.id);
+                    cart[id] = (cart[id] || 0) + 1;
+                    updateCart();
+                });
+            });
+            
+            document.querySelectorAll('.btn-minus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.dataset.id);
+                    if (cart[id] && cart[id] > 0) {
+                        cart[id]--;
+                        if (cart[id] === 0) delete cart[id];
+                        updateCart();
+                    }
+                });
+            });
+        }
+
+        function updateCart() {
+            let total = 0;
+            let totalItems = 0;
+            
+            products.forEach(product => {
+                const qty = cart[product.id] || 0;
+                const qtyElement = document.getElementById(`qty-${product.id}`);
+                if (qtyElement) {
+                    qtyElement.textContent = qty;
+                }
+                total += qty * product.price;
+                totalItems += qty;
+            });
+            
+            document.getElementById('total-price').textContent = `$${total.toLocaleString()}`;
+            document.getElementById('cart-badge').textContent = totalItems;
+            document.getElementById('floating-total').textContent = `$${total.toLocaleString()}`;
+            
+            // Show/hide floating cart based on items
+            const floatingCart = document.getElementById('floating-cart');
+            if (currentStep === 3 && totalItems > 0) {
+                floatingCart.style.display = 'block';
+            } else {
+                floatingCart.style.display = 'none';
+            }
+            
+            renderCartPanel();
+        }
+
+        function renderCartPanel() {
+            const cartBody = document.getElementById('cart-panel-body');
+            cartBody.innerHTML = '';
+            
+            let hasItems = false;
+            products.forEach(product => {
+                const qty = cart[product.id] || 0;
+                if (qty > 0) {
+                    hasItems = true;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'cart-item';
+                    itemDiv.innerHTML = `
+                        <div style="flex: 1;">
+                            <div style="font-weight: 800; color: #000000; font-size: 15px; margin-bottom: 6px;">${product.name}</div>
+                            <div style="color: rgba(0, 0, 0, 0.6); font-size: 13px;">$${product.price.toLocaleString()} × ${qty}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button class="cart-minus" data-id="${product.id}" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); color: #DC2626; border: 2px solid rgba(220, 38, 38, 0.3); font-size: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='white'" onmouseout="this.style.background='rgba(220, 38, 38, 0.1)'; this.style.color='#DC2626'">−</button>
+                            <span style="font-weight: 900; color: #000000; min-width: 28px; text-align: center; font-size: 16px;">${qty}</span>
+                            <button class="cart-plus" data-id="${product.id}" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; border: none; font-size: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">+</button>
+                            <div style="font-weight: 900; color: #DC2626; margin-left: 8px; min-width: 80px; text-align: right; font-size: 16px;">$${(product.price * qty).toLocaleString()}</div>
+                        </div>
+                    `;
+                    cartBody.appendChild(itemDiv);
+                }
+            });
+            
+            if (!hasItems) {
+                cartBody.innerHTML = '<div style="text-align: center; padding: 60px 20px; color: rgba(0, 0, 0, 0.4); font-size: 16px;">🛒<br><br>Tu carrito está vacío</div>';
+            }
+            
+            // Add event listeners for cart panel buttons
+            document.querySelectorAll('.cart-plus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.dataset.id);
+                    cart[id] = (cart[id] || 0) + 1;
+                    updateCart();
+                });
+            });
+            
+            document.querySelectorAll('.cart-minus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.dataset.id);
+                    if (cart[id] && cart[id] > 0) {
+                        cart[id]--;
+                        if (cart[id] === 0) delete cart[id];
+                        updateCart();
+                    }
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            // Info pages navigation
+            document.getElementById('btn-schedule').addEventListener('click', showSchedulePage);
+            document.getElementById('btn-policies').addEventListener('click', showPoliciesPage);
+            document.getElementById('btn-back-from-schedule').addEventListener('click', showReservationFlow);
+            document.getElementById('btn-back-from-policies').addEventListener('click', showReservationFlow);
+            
+            document.getElementById('btn-date-next').addEventListener('click', () => {
+                const dateValue = document.getElementById('date-input').value;
+                if (!dateValue) {
+                    showInlineMessage('Por favor selecciona una fecha', 'date-step');
+                    return;
+                }
+                selectedDate = dateValue;
+                selectedTime = ''; // Resetear hora seleccionada al cambiar fecha
+                const config = window.elementSdk?.config || defaultConfig;
+                renderTimeSlots(config); // Regenerar horarios según el día
+                goToStep(2);
+            });
+
+            document.getElementById('btn-time-back').addEventListener('click', () => goToStep(1));
+            document.getElementById('btn-time-next').addEventListener('click', () => {
+                if (!selectedTime) {
+                    showInlineMessage('Por favor selecciona una hora', 'time-step');
+                    return;
+                }
+                goToStep(3);
+            });
+
+            document.getElementById('btn-products-back').addEventListener('click', () => goToStep(2));
+            document.getElementById('btn-products-next').addEventListener('click', () => {
+                if (Object.keys(cart).length === 0) {
+                    showInlineMessage('Por favor selecciona al menos un producto', 'products-step');
+                    return;
+                }
+                updateSummary();
+                goToStep(4);
+            });
+
+            document.getElementById('btn-data-back').addEventListener('click', () => goToStep(3));
+            
+            document.getElementById('customer-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await submitReservation();
+            });
+
+            document.getElementById('btn-new-reservation').addEventListener('click', resetForm);
+            
+            document.getElementById('btn-home').addEventListener('click', resetForm);
+
+            // Floating cart events
+            document.getElementById('floating-cart-btn').addEventListener('click', () => {
+                document.getElementById('floating-cart-panel').classList.add('open');
+            });
+
+            document.getElementById('close-cart-panel').addEventListener('click', () => {
+                document.getElementById('floating-cart-panel').classList.remove('open');
+            });
+
+            document.getElementById('floating-continue-btn').addEventListener('click', () => {
+                if (Object.keys(cart).length === 0) {
+                    showInlineMessage('Por favor selecciona al menos un producto', 'products-step');
+                    return;
+                }
+                document.getElementById('floating-cart-panel').classList.remove('open');
+                updateSummary();
+                goToStep(4);
+            });
+        }
+
+        function showInlineMessage(message, stepId) {
+            const step = document.getElementById(stepId);
+            const existing = step.querySelector('.inline-message');
+            if (existing) existing.remove();
+            
+            const msg = document.createElement('div');
+            msg.className = 'inline-message';
+            msg.style.cssText = 'background: rgba(220, 38, 38, 0.1); backdrop-filter: blur(10px); color: #DC2626; padding: 16px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; text-align: center; border: 2px solid rgba(220, 38, 38, 0.2); font-size: 15px;';
+            msg.textContent = '⚠️ ' + message;
+            step.insertBefore(msg, step.firstChild);
+            
+            setTimeout(() => {
+                msg.style.opacity = '0';
+                msg.style.transform = 'translateY(-10px)';
+                msg.style.transition = 'all 0.3s';
+                setTimeout(() => msg.remove(), 300);
+            }, 3000);
+        }
+
+        function showSchedulePage() {
+            // Hide all reservation steps
+            hideAllSteps();
+            
+            // Hide step indicators and info buttons
+            document.querySelector('.step-indicator').parentElement.style.display = 'none';
+            document.getElementById('info-buttons').style.display = 'none';
+            
+            // Show schedule page
+            document.getElementById('schedule-page').style.display = 'block';
+            
+            // Show home button
+            document.getElementById('btn-home').style.display = 'flex';
+        }
+        
+        function showPoliciesPage() {
+            // Hide all reservation steps
+            hideAllSteps();
+            
+            // Hide step indicators and info buttons
+            document.querySelector('.step-indicator').parentElement.style.display = 'none';
+            document.getElementById('info-buttons').style.display = 'none';
+            
+            // Show policies page
+            document.getElementById('policies-page').style.display = 'block';
+            
+            // Update WhatsApp display
+            const config = window.elementSdk?.config || defaultConfig;
+            const whatsappNumber = config.whatsapp_number || defaultConfig.whatsapp_number;
+            document.getElementById('whatsapp-display').textContent = `+${whatsappNumber}`;
+            
+            // Show home button
+            document.getElementById('btn-home').style.display = 'flex';
+        }
+        
+        function showReservationFlow() {
+            // Hide info pages
+            document.getElementById('schedule-page').style.display = 'none';
+            document.getElementById('policies-page').style.display = 'none';
+            
+            // Show step indicators and info buttons
+            document.querySelector('.step-indicator').parentElement.style.display = 'flex';
+            document.getElementById('info-buttons').style.display = 'flex';
+            
+            // Go back to current step or step 1
+            goToStep(currentStep > 0 ? currentStep : 1);
+        }
+        
+        function hideAllSteps() {
+            document.getElementById('date-step').style.display = 'none';
+            document.getElementById('time-step').style.display = 'none';
+            document.getElementById('products-step').style.display = 'none';
+            document.getElementById('data-step').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+            document.getElementById('schedule-page').style.display = 'none';
+            document.getElementById('policies-page').style.display = 'none';
+        }
+        
+        function goToStep(step) {
+            hideAllSteps();
+            
+            // Show step indicators and info buttons
+            document.querySelector('.step-indicator').parentElement.style.display = 'flex';
+            document.getElementById('info-buttons').style.display = 'flex';
+            
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step-${i}`);
+                stepEl.classList.remove('step-active', 'step-completed');
+                stepEl.classList.add('step-inactive');
+            }
+            
+            for (let i = 1; i < step; i++) {
+                document.getElementById(`step-${i}`).classList.remove('step-inactive');
+                document.getElementById(`step-${i}`).classList.add('step-completed');
+            }
+            
+            document.getElementById(`step-${step}`).classList.remove('step-inactive');
+            document.getElementById(`step-${step}`).classList.add('step-active');
+            
+            if (step === 1) document.getElementById('date-step').style.display = 'block';
+            if (step === 2) document.getElementById('time-step').style.display = 'block';
+            if (step === 3) document.getElementById('products-step').style.display = 'block';
+            if (step === 4) document.getElementById('data-step').style.display = 'block';
+            
+            currentStep = step;
+            
+            // Show/hide home button (only show after step 1)
+            const homeBtn = document.getElementById('btn-home');
+            if (step > 1) {
+                homeBtn.style.display = 'flex';
+            } else {
+                homeBtn.style.display = 'none';
+            }
+            
+            // Update floating cart visibility
+            updateCart();
+        }
+
+        function updateSummary() {
+            const formattedDate = new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-CL', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            document.getElementById('summary-date').textContent = formattedDate;
+            document.getElementById('summary-time').textContent = selectedTime;
+            
+            let total = 0;
+            products.forEach(product => {
+                const qty = cart[product.id] || 0;
+                total += qty * product.price;
+            });
+            document.getElementById('summary-total').textContent = `$${total.toLocaleString()}`;
+        }
+
+        async function submitReservation() {
+            const submitBtn = document.getElementById('btn-submit');
+            const submitText = document.getElementById('submit-text');
+            const submitLoading = document.getElementById('submit-loading');
+            
+            submitBtn.disabled = true;
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'block';
+            
+            const nombre = document.getElementById('customer-name').value;
+            const telefono = document.getElementById('customer-phone').value;
+            const rut = document.getElementById('customer-rut').value;
+            
+            let total = 0;
+            let productosTexto = '';
+            products.forEach(product => {
+                const qty = cart[product.id] || 0;
+                if (qty > 0) {
+                    productosTexto += `${product.name} x${qty} ($${(product.price * qty).toLocaleString()}), `;
+                    total += qty * product.price;
+                }
+            });
+            productosTexto = productosTexto.slice(0, -2);
+            
+            if (window.dataSdk) {
+                const createResult = await window.dataSdk.create({
+                    fecha: selectedDate,
+                    hora: selectedTime,
+                    nombre: nombre,
+                    telefono: telefono,
+                    rut: rut,
+                    productos: productosTexto,
+                    total: total,
+                    estado: 'Pendiente',
+                    timestamp: new Date().toISOString()
+                });
+                
+                if (!createResult.isOk) {
+                    showInlineMessage('Error al guardar la reserva', 'data-step');
+                    submitBtn.disabled = false;
+                    submitText.style.display = 'block';
+                    submitLoading.style.display = 'none';
+                    return;
+                }
+            }
+            
+            const config = window.elementSdk?.config || defaultConfig;
+            const whatsappNumber = config.whatsapp_number || defaultConfig.whatsapp_number;
+            const restaurantName = config.restaurant_name || defaultConfig.restaurant_name;
+            
+            const formattedDate = new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-CL', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const message = `🍗 *NUEVA RESERVA - ${restaurantName}*\n\n` +
+                `📅 *Fecha:* ${formattedDate}\n` +
+                `🕐 *Hora:* ${selectedTime}\n\n` +
+                `👤 *DATOS DEL CLIENTE*\n` +
+                `Nombre: ${nombre}\n` +
+                `Teléfono: ${telefono}\n` +
+                `RUT: ${rut}\n\n` +
+                `🍽️ *PRODUCTOS SOLICITADOS*\n${productosTexto}\n\n` +
+                `💰 *TOTAL: $${total.toLocaleString()}*`;
+            
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+            
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+            
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitText.style.display = 'block';
+                submitLoading.style.display = 'none';
+                showSuccess();
+            }, 1000);
+        }
+
+        function showSuccess() {
+            document.getElementById('data-step').style.display = 'none';
+            document.getElementById('success-message').style.display = 'block';
+        }
+
+        function resetForm() {
+            selectedDate = '';
+            selectedTime = '';
+            cart = {};
+            currentStep = 1;
+            
+            document.getElementById('date-input').value = '';
+            document.getElementById('customer-name').value = '';
+            document.getElementById('customer-phone').value = '';
+            document.getElementById('customer-rut').value = '';
+            
+            updateCart();
+            
+            document.getElementById('success-message').style.display = 'none';
+            goToStep(1);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a67a206a4f6b44e',t:'MTc2NDQ3NzI3Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
